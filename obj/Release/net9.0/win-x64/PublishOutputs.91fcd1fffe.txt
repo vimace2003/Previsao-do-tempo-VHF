@@ -1,3 +1,0 @@
-B:\ARAF\HamWX\WeatherApp\bin\Release\net9.0\win-x64\publish\WeatherApp.pdb
-B:\ARAF\HamWX\WeatherApp\bin\Release\net9.0\win-x64\publish\appsettings.json
-B:\ARAF\HamWX\WeatherApp\bin\Release\net9.0\win-x64\publish\WeatherApp.exe

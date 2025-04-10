@@ -20,9 +20,14 @@ class Program
         var apiKey = _configuration["ApiKey"];
         var serialPortName = _configuration["SerialPortName"];
         var callSign = _configuration["CallSign"];
+        var speechRate = int.TryParse(_configuration["SpeechRate"], out var rate) ? rate : 0;
+        var pttControlLine = _configuration["PttControlLine"]?.ToUpper() ?? "DTR";
         var cities = File.ReadAllLines("cities.txt");
-        var synthesizer = new SpeechSynthesizer();
-        
+        var synthesizer = new SpeechSynthesizer
+        {
+            Rate = speechRate
+        };
+
         // Carregar mensagem personalizada
         var customMessage = LoadCustomMessage();
 
@@ -30,6 +35,8 @@ class Program
         Console.WriteLine($"API Key: {apiKey}");
         Console.WriteLine($"Serial Port Name: {serialPortName}");
         Console.WriteLine($"Call Sign: {callSign}");
+        Console.WriteLine($"Velocidade da fala: {speechRate}");
+        Console.WriteLine($"Linha de controle PTT: {pttControlLine}");
 
         using (var serialPort = new SerialPort(serialPortName, 9600))
         {
@@ -67,8 +74,8 @@ class Program
                     var tempFormatted = tempCelsius.ToString("0.0", System.Globalization.CultureInfo.InvariantCulture).Replace('.', ',');
 
                     var message = $"{callSign} Informa: A temperatura atual em {cityName} é {tempFormatted} graus Celsius. " +
-                                  $"Descrição: {description}. Umidade: {humidity}%." +
-                                  $" Pressão atmosférica: {pressure} hPa. Velocidade do vento: {windSpeed} m/s. " +
+                                  $"A Condição Atual é: {description}. Umidade: {humidity}%." +
+                                  $" Pressão atmosférica: {pressure} hPa. Velocidade do vento: {windSpeed} Metros por segundo. " +
                                   $"Direção do vento: {windDeg} graus. Condições de nuvens: {clouds}%. Possível chuva nas próximas 3 horas: {rain} mm. " +
                                   $"{customMessage} " +
                                   $"Emissão Piloto de {callSign}. Geração de previsão do tempo com Tecnologia Microsoft Azure e Open Weather Map.";
@@ -80,8 +87,17 @@ class Program
                     synthesizer.SetOutputToNull();
                     Console.WriteLine("Áudio gerado.");
 
-                    serialPort.DtrEnable = true;
-                    Console.WriteLine("Sinal DTR ativado.");
+                    // Ativar linha de controle correta
+                    if (pttControlLine == "RTS")
+                    {
+                        serialPort.RtsEnable = true;
+                        Console.WriteLine("Sinal RTS ativado.");
+                    }
+                    else
+                    {
+                        serialPort.DtrEnable = true;
+                        Console.WriteLine("Sinal DTR ativado.");
+                    }
 
                     using (var audioFile = new WaveFileReader(tempAudioFile))
                     using (var audioOutput = new WaveOutEvent())
@@ -89,7 +105,7 @@ class Program
                         audioOutput.Init(audioFile);
                         audioOutput.Play();
                         Console.WriteLine("Reproduzindo áudio...");
-                        
+
                         while (audioOutput.PlaybackState == PlaybackState.Playing)
                         {
                             await Task.Delay(100);
@@ -98,8 +114,17 @@ class Program
                         Console.WriteLine("Áudio reproduzido.");
                     }
 
-                    serialPort.DtrEnable = false;
-                    Console.WriteLine("Sinal DTR desativado.");
+                    // Desativar linha de controle correta
+                    if (pttControlLine == "RTS")
+                    {
+                        serialPort.RtsEnable = false;
+                        Console.WriteLine("Sinal RTS desativado.");
+                    }
+                    else
+                    {
+                        serialPort.DtrEnable = false;
+                        Console.WriteLine("Sinal DTR desativado.");
+                    }
                 }
                 else
                 {
